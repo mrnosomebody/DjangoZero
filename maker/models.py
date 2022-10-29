@@ -1,11 +1,82 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone
 
 
-# class User(User):
-#     ...
+class UserManager(BaseUserManager):
+    def create_user(self, email, first_name, last_name,
+                    password=None,
+                    is_active=False,
+                    is_admin=False,
+                    is_superuser=False
+                    ):
+        if not email:
+            raise ValueError('Users must have an email address')
+
+        user = self.model(
+            email=self.normalize_email(email),
+            first_name=first_name,
+            last_name=last_name,
+            is_active=is_active,
+            is_admin=is_admin,
+            is_superuser=is_superuser
+        )
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, first_name, last_name, password=None):
+        user = self.create_user(
+            email=self.normalize_email(email),
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=True,
+            is_admin=True,
+            is_superuser=True
+        )
+        user.save(using=self._db)
+        return user
 
 
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=80)
+    last_name = models.CharField(max_length=80)
+    is_active = models.BooleanField(default=False)  # will be activated via email confirmation
+    is_admin = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    USERNAME_FIELD = 'email'
+    EMAIL_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name']
+
+    object = UserManager()
+
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
+        ordering = ['-date_joined']
+
+    def get_full_name(self):
+        return f'{self.first_name} {self.last_name}'
+
+    def get_short_name(self):
+        return f'{self.first_name}'
+
+    def __str__(self):
+        return self.get_full_name()
+
+    def has_perm(self, perm, obj=None):
+        return super().has_perm(perm, obj=None)
+
+    def has_module_perms(self, app_label):
+        return super().has_module_perms(app_label)
+
+    @property
+    def is_staff(self):
+        return self.is_admin
 class Company(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
@@ -15,7 +86,7 @@ class Company(models.Model):
     def __str__(self):
         return self.name
 
-    def _update_rating(self, company_id, val):
+    def update_rating(self, company_id, val):
         reviews_count = len(Review.objects.filter(pk=company_id))
         self.rating = (self.rating + val) / reviews_count
 
@@ -55,8 +126,8 @@ class Review(models.Model):
         return f"{self.user.username}'s review - {self.rating}"
 
     def save(self):
-        self.company._update_rating(self.company.id, self.rating)
         super().save()
+        self.company.update_rating(self.company.id, self.rating)
 
 
 class Favorite(models.Model):
