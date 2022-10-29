@@ -77,6 +77,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_staff(self):
         return self.is_admin
+
+
 class Company(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
