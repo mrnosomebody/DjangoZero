@@ -1,18 +1,18 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
 
+from phonenumber_field.modelfields import PhoneNumberField
+
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, first_name, last_name,
-                    password=None,
-                    is_active=False,
-                    is_admin=False,
-                    is_superuser=False
-                    ):
-        if not email:
-            raise ValueError('Users must have an email address')
-
+    def create_user(
+            self, email, first_name, last_name,
+            password=None,
+            is_active=False,
+            is_admin=False,
+            is_superuser=False
+    ):
         user = self.model(
             email=self.normalize_email(email),
             first_name=first_name,
@@ -35,7 +35,6 @@ class UserManager(BaseUserManager):
             is_admin=True,
             is_superuser=True
         )
-        user.save(using=self._db)
         return user
 
 
@@ -43,9 +42,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
-    is_active = models.BooleanField(default=False)  # will be activated via email confirmation
+    is_active = models.BooleanField(default=False)  # will be activated via email/phone confirmation
     is_admin = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'email'
@@ -68,29 +66,31 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.get_full_name()
 
-    def has_perm(self, perm, obj=None):
-        return super().has_perm(perm, obj=None)
-
-    def has_module_perms(self, app_label):
-        return super().has_module_perms(app_label)
-
     @property
     def is_staff(self):
         return self.is_admin
 
 
 class Company(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField()
     email = models.EmailField()
-    rating = models.DecimalField(decimal_places=1, max_digits=2, default=0, blank=True)
+    # this field is not necessary, but I suppose that it is better to save rating
+    # and just get it rather than counting it every time it's needed
+    rating = models.DecimalField(
+        decimal_places=1,
+        max_digits=2,
+        default=0,
+        blank=True
+    )
 
     def __str__(self):
         return self.name
 
-    def update_rating(self, company_id, val):
-        reviews_count = len(Review.objects.filter(pk=company_id))
-        self.rating = (self.rating + val) / reviews_count
+    def update_rating(self, val: int) -> None:
+        reviews_quantity = Review.objects.filter(company=self.id).count()
+        self.rating = (self.rating + val) / reviews_quantity
+        self.save()
 
     class Meta:
         verbose_name_plural = 'Companies'
@@ -102,7 +102,7 @@ class Branch(models.Model):
     city = models.CharField(max_length=155)
     address = models.CharField(max_length=155)  # google autocomplete may be added here
     discounts = models.TextField(blank=True, null=True)
-    b_phone = models.CharField(max_length=11)  # validator needed
+    phone = PhoneNumberField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.company.name} branch in {self.city}"
@@ -112,7 +112,7 @@ class Branch(models.Model):
 
 
 class Cuisine(models.Model):
-    name = models.CharField(max_length=55)
+    name = models.CharField(max_length=55, unique=True)
 
     def __str__(self):
         return self.name
@@ -125,11 +125,18 @@ class Review(models.Model):
     rating = models.IntegerField()
 
     def __str__(self):
-        return f"{self.user.username}'s review - {self.rating}"
+        return f"{self.user.email}'s review - {self.rating}"
 
+    # maybe it's better to move this logic to views
     def save(self):
-        super().save()
-        self.company.update_rating(self.company.id, self.rating)
+        with transaction.atomic():
+            super().save()  # do it in transaction
+            self.company.update_rating(self.rating)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'company'], name='UserCompany Unique')
+        ]
 
 
 class Favorite(models.Model):
@@ -137,7 +144,7 @@ class Favorite(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.user.username}'s favorites"
+        return f"{self.user.email} - {self.company.name}"
 
 
 class CompanyCuisine(models.Model):

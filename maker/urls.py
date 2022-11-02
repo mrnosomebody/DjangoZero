@@ -1,6 +1,10 @@
-from django.urls import path
+from django.urls import path, include
 import maker.views as maker_views
 
 urlpatterns = [
-    path('', maker_views.index),
+    path('add/', include([
+        path('user/', maker_views.add_user),
+        path('company/', maker_views.add_company),
+        path('branch/', maker_views.add_branch),
+    ])),
 ]
