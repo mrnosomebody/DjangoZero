@@ -50,7 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     EMAIL_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
 
-    object = UserManager()
+    objects = UserManager()
 
     class Meta:
         verbose_name = 'User'
@@ -103,6 +103,11 @@ class Branch(models.Model):
     address = models.CharField(max_length=155)  # google autocomplete may be added here
     discounts = models.TextField(blank=True, null=True)
     phone = PhoneNumberField(blank=True, null=True)
+    image = models.ImageField(
+        upload_to='uploads/images/',
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return f"{self.company.name} branch in {self.city}"
