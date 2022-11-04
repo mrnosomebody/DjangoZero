@@ -18,9 +18,21 @@ def add_user(request):
             else:
                 User.objects.create_user(**data)
                 return HttpResponse(status=201)
-
         return HttpResponse(status=400)
-    return HttpResponse()
+    return HttpResponse(status=405)
+
+
+def get_users(request):
+    if request.method == 'GET':
+        data = []
+        fields = ('id', 'first_name', 'last_name', 'is_active', 'is_admin', 'date_joined')
+        users = User.objects.all()
+        for user in users:
+            user_data = {key: user.__dict__[key] for key in fields}
+            user_data = json.dumps(user_data, default=str)
+            data.append(user_data)
+        return HttpResponse(data)
+    return HttpResponse(status=405)
 
 
 @csrf_exempt
@@ -31,7 +43,7 @@ def add_company(request):
             Company.objects.create(**data)
             return HttpResponse(status=201)
         return HttpResponse(status=400)
-    return HttpResponse()
+    return HttpResponse(status=405)
 
 
 def add_branch(request):
