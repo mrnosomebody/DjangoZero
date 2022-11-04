@@ -6,6 +6,18 @@ from django.views.decorators.csrf import csrf_exempt
 from maker.models import Company, User
 
 
+class CsrfExemptMeta(type):
+    """Metaclass for excluding duplicate @csrf_exempt decorator"""
+
+    def __new__(mcs, name, bases, dict):
+        new_cls = super().__new__(mcs, name, bases, dict)
+        return csrf_exempt(new_cls)
+
+
+class View(metaclass=CsrfExemptMeta):
+    pass
+
+
 @csrf_exempt
 def add_user(request):
     if request.method == 'POST':
