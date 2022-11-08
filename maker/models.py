@@ -62,6 +62,10 @@ class User(AbstractBaseUser):
         verbose_name = 'User'
         verbose_name_plural = 'Users'
         ordering = ['-date_joined']
+        indexes = [
+            models.Index(fields=('date_joined', ), name='user_date_joined_index'),
+            models.Index(fields=('is_active', ), name='user_is_active_index'),
+        ]
 
     def get_full_name(self):
         return f'{self.first_name} {self.last_name}'
@@ -100,6 +104,9 @@ class Company(models.Model):
 
     class Meta:
         verbose_name_plural = 'Companies'
+        indexes = [
+            models.Index(fields=('name', ), name='company_name_index'),
+        ]
 
 
 class Branch(models.Model):
@@ -120,6 +127,12 @@ class Branch(models.Model):
 
     class Meta:
         verbose_name_plural = 'Branches'
+        indexes = [
+            models.Index(fields=('country', 'city'), name='branch_location_index'),
+            models.Index(fields=('country', ), name='branch_country_index'),
+            models.Index(fields=('city', ), name='branch_city_index'),
+            models.Index(fields=('discounts', ), name='branch_discounts_index'),
+        ]
 
 
 class Cuisine(models.Model):
@@ -127,6 +140,12 @@ class Cuisine(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name_plural = 'Cuisines'
+        indexes = [
+            models.Index(fields=('name', ), name='cuisine_name_index')
+        ]
 
 
 class Review(models.Model):
@@ -146,7 +165,13 @@ class Review(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['user', 'company'], name='UserCompany Unique')
+            models.UniqueConstraint(
+                fields=['user', 'company'],
+                name='UserCompany Unique'
+            )
+        ]
+        indexes = [
+            models.Index(fields=('rating', ), name='review_rating_index')
         ]
 
 
@@ -167,5 +192,8 @@ class CompanyCuisine(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['company', 'cuisine'], name='CompanyCuisine Unique')
+            models.UniqueConstraint(
+                fields=['company', 'cuisine'],
+                name='CompanyCuisine Unique'
+            )
         ]
