@@ -1,5 +1,6 @@
 from django.db import models, transaction
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 
 from phonenumber_field.modelfields import PhoneNumberField
@@ -8,11 +9,14 @@ from phonenumber_field.modelfields import PhoneNumberField
 class UserManager(BaseUserManager):
     def create_user(
             self, email, first_name, last_name,
-            password=None,
+            password='',
             is_active=False,
             is_admin=False,
             is_superuser=False
     ):
+        password_invalid = validate_password(password, user=User)
+        if password_invalid:
+            return password_invalid
         user = self.model(
             email=self.normalize_email(email),
             first_name=first_name,
@@ -22,6 +26,7 @@ class UserManager(BaseUserManager):
             is_superuser=is_superuser
         )
         user.set_password(password)
+        #  using tells which database to use. self._db is default db from settings
         user.save(using=self._db)
         return user
 
@@ -38,12 +43,13 @@ class UserManager(BaseUserManager):
         return user
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
     is_active = models.BooleanField(default=False)  # will be activated via email/phone confirmation
     is_admin = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'email'

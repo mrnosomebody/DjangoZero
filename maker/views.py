@@ -25,6 +25,7 @@ def add_user(request):
 
         if not User.objects.filter(email=data['email']):
             if data.get('is_superuser'):
+                data.pop('is_superuser')
                 User.objects.create_superuser(**data)
                 return HttpResponse(status=201)
             else:
