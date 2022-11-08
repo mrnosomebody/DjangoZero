@@ -47,10 +47,11 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
-    is_active = models.BooleanField(default=False)  # will be activated via email/phone confirmation
+    # will be activated via email/phone confirmation
+    is_active = models.BooleanField(default=False, db_index=True)
     is_admin = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=timezone.now)
+    date_joined = models.DateTimeField(default=timezone.now, db_index=True)
 
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
@@ -62,10 +63,6 @@ class User(AbstractBaseUser):
         verbose_name = 'User'
         verbose_name_plural = 'Users'
         ordering = ['-date_joined']
-        indexes = [
-            models.Index(fields=('date_joined', ), name='user_date_joined_index'),
-            models.Index(fields=('is_active', ), name='user_is_active_index'),
-        ]
 
     def get_full_name(self):
         return f'{self.first_name} {self.last_name}'
@@ -82,7 +79,7 @@ class User(AbstractBaseUser):
 
 
 class Company(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255, unique=True, db_index=True)
     description = models.TextField()
     email = models.EmailField()
     # this field is not necessary, but I suppose that it is better to save rating
@@ -104,17 +101,14 @@ class Company(models.Model):
 
     class Meta:
         verbose_name_plural = 'Companies'
-        indexes = [
-            models.Index(fields=('name', ), name='company_name_index'),
-        ]
 
 
 class Branch(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    country = models.CharField(max_length=155)
-    city = models.CharField(max_length=155)
+    country = models.CharField(max_length=155, db_index=True)
+    city = models.CharField(max_length=155, db_index=True)
     address = models.CharField(max_length=155)  # google autocomplete may be added here
-    discounts = models.TextField(blank=True, null=True)
+    discounts = models.TextField(blank=True, null=True, db_index=True)
     phone = PhoneNumberField(blank=True, null=True)
     image = models.ImageField(
         upload_to='uploads/images/',
@@ -129,30 +123,24 @@ class Branch(models.Model):
         verbose_name_plural = 'Branches'
         indexes = [
             models.Index(fields=('country', 'city'), name='branch_location_index'),
-            models.Index(fields=('country', ), name='branch_country_index'),
-            models.Index(fields=('city', ), name='branch_city_index'),
-            models.Index(fields=('discounts', ), name='branch_discounts_index'),
         ]
 
 
 class Cuisine(models.Model):
-    name = models.CharField(max_length=55, unique=True)
+    name = models.CharField(max_length=55, unique=True, db_index=True)
 
     def __str__(self):
         return self.name
 
     class Meta:
         verbose_name_plural = 'Cuisines'
-        indexes = [
-            models.Index(fields=('name', ), name='cuisine_name_index')
-        ]
 
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     description = models.TextField()
-    rating = models.IntegerField()
+    rating = models.IntegerField(db_index=True)
 
     def __str__(self):
         return f"{self.user.email}'s review - {self.rating}"
@@ -169,9 +157,6 @@ class Review(models.Model):
                 fields=['user', 'company'],
                 name='UserCompany Unique'
             )
-        ]
-        indexes = [
-            models.Index(fields=('rating', ), name='review_rating_index')
         ]
 
 
