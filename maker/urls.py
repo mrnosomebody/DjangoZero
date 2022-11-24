@@ -9,5 +9,6 @@ urlpatterns = [
     ])),
     path('get/', include([
         path('users/', maker_views.get_users),
-    ]))
+    ])),
+    path('', maker_views.test_queryset)
 ]

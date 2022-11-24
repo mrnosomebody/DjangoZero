@@ -104,7 +104,12 @@ class Company(models.Model):
 
 
 class Branch(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    company = models.ForeignKey(
+        Company,
+        related_name='branches',
+        related_query_name='branch',
+        on_delete=models.CASCADE
+    )
     country = models.CharField(max_length=155, db_index=True)
     city = models.CharField(max_length=155, db_index=True)
     address = models.CharField(max_length=155)  # google autocomplete may be added here
@@ -137,8 +142,18 @@ class Cuisine(models.Model):
 
 
 class Review(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        related_name='reviews',
+        related_query_name='review',
+        on_delete=models.CASCADE
+    )
+    company = models.ForeignKey(
+        Company,
+        related_name='reviews',
+        related_query_name='review',
+        on_delete=models.CASCADE
+    )
     description = models.TextField()
     rating = models.IntegerField(db_index=True)
 
@@ -146,9 +161,9 @@ class Review(models.Model):
         return f"{self.user.email}'s review - {self.rating}"
 
     # maybe it's better to move this logic to views
-    def save(self):
+    def save(self, *args, **kwargs):
         with transaction.atomic():
-            super().save()  # do it in transaction
+            super().save(self, *args, **kwargs)  # do it in transaction
             self.company.update_rating(self.rating)
 
     class Meta:
@@ -161,14 +176,32 @@ class Review(models.Model):
 
 
 class Favorite(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        related_name='favorites',
+        related_query_name='favorite',
+        on_delete=models.CASCADE
+    )
+    company = models.ForeignKey(
+        Company,
+        related_name='favorites',
+        related_query_name='favorite',
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f"{self.user.email} - {self.company.name}"
 
 
 class CompanyCuisine(models.Model):
+    """
+    This model could be replaced with just a M2MField as we don't need
+    any extra fields, but unique constraints can't be used on M2MField,
+    so we should use signals.
+    Or we can keep this M2M table and create M2MField in the Company model
+    and define 'through' table for it, so we could both use related_name and have
+    UniqueConstraint
+    """
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     cuisine = models.ForeignKey(Cuisine, on_delete=models.CASCADE)
 
@@ -177,6 +210,8 @@ class CompanyCuisine(models.Model):
 
     class Meta:
         constraints = [
+            # the same as unique_constraint field,
+            # but unique_constraint might be deprecated in future
             models.UniqueConstraint(
                 fields=['company', 'cuisine'],
                 name='CompanyCuisine Unique'
