@@ -121,9 +121,6 @@ class Branch(models.Model):
         null=True
     )
 
-    def __str__(self):
-        return f"{self.company.name} branch in {self.city}"
-
     class Meta:
         verbose_name_plural = 'Branches'
         indexes = [
@@ -139,9 +136,6 @@ class Cuisine(models.Model):
         related_name='cuisines',
         related_query_name='cuisine'
     )
-
-    def __str__(self):
-        return self.name
 
     class Meta:
         verbose_name_plural = 'Cuisines'
@@ -162,9 +156,6 @@ class Review(models.Model):
     )
     description = models.TextField()
     rating = models.IntegerField(db_index=True)
-
-    def __str__(self):
-        return f"{self.user.email}'s review - {self.rating}"
 
     # maybe it's better to move this logic to views
     def save(self, *args, **kwargs):
@@ -195,9 +186,6 @@ class Favorite(models.Model):
         on_delete=models.CASCADE
     )
 
-    def __str__(self):
-        return f"{self.user.email} - {self.company.name}"
-
 
 class CompanyCuisine(models.Model):
     """
@@ -210,9 +198,6 @@ class CompanyCuisine(models.Model):
     """
     company = models.ForeignKey(Company, related_name='c_companies', on_delete=models.CASCADE)
     cuisine = models.ForeignKey(Cuisine, related_name='c_cuisines', on_delete=models.CASCADE)
-
-    # def __str__(self):
-    #     return f"{self.company.name} - {self.cuisine.name}"
 
     class Meta:
         constraints = [
