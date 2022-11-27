@@ -3,7 +3,7 @@ import json
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from maker.models import Company, User, Branch, CompanyCuisine
+from maker.models import Company, User, Branch, CompanyCuisine, Cuisine, Review
 
 
 class CsrfExemptMeta(type):
@@ -64,30 +64,6 @@ def add_branch(request):
 
 
 def test_queryset(request):
-    a = Company.objects.get(pk=1)
-    print(a.companycuisine_set.all())
-    print('===========================')
-    b = CompanyCuisine.objects.filter(company__name='Supra')
-    print(b)
-    # print(a)
-    # print(a.branches.all())
-    # b = a.filter(email__contains='r')
-    # print(a)
+    a = User.objects.get(pk=1)
+    print(a.reviews.all())
     return HttpResponse()
-
-'''
-0.000) SELECT "maker_companycuisine"."id", "maker_companycuisine"."company_id",
- "maker_companycuisine"."cuisine_id" FROM "maker_companycuisine"
-  INNER JOIN "maker_company" ON ("maker_companycuisine"."company_id" = "maker_company"."id")
-   WHERE "maker_company"."name" = 'Supra' LIMIT 21; args=('Supra',); alias=default
-(0.000) SELECT "maker_company"."id", "maker_company"."name", "maker_company"."description",
- "maker_company"."email", "maker_company"."rating" FROM "maker_company"
-  WHERE "maker_company"."id" = 1 LIMIT 21; args=(1,); alias=default
-(0.000) SELECT "maker_cuisine"."id", "maker_cuisine"."name" FROM "maker_cuisine"
- WHERE "maker_cuisine"."id" = 1 LIMIT 21; args=(1,); alias=default
-(0.000) SELECT "maker_company"."id", "maker_company"."name", "maker_company"."description",
- "maker_company"."email", "maker_company"."rating" FROM "maker_company"
-  WHERE "maker_company"."id" = 1 LIMIT 21; args=(1,); alias=default
-(0.000) SELECT "maker_cuisine"."id", "maker_cuisine"."name" FROM "maker_cuisine"
- WHERE "maker_cuisine"."id" = 2 LIMIT 21; args=(2,); alias=default
-'''

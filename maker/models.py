@@ -133,6 +133,12 @@ class Branch(models.Model):
 
 class Cuisine(models.Model):
     name = models.CharField(max_length=55, unique=True, db_index=True)
+    companies = models.ManyToManyField(
+        Company,
+        through='CompanyCuisine',
+        related_name='cuisines',
+        related_query_name='cuisine'
+    )
 
     def __str__(self):
         return self.name
@@ -202,11 +208,11 @@ class CompanyCuisine(models.Model):
     and define 'through' table for it, so we could both use related_name and have
     UniqueConstraint
     """
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    cuisine = models.ForeignKey(Cuisine, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, related_name='c_companies', on_delete=models.CASCADE)
+    cuisine = models.ForeignKey(Cuisine, related_name='c_cuisines', on_delete=models.CASCADE)
 
-    def __str__(self):
-        return f"{self.company.name} - {self.cuisine.name}"
+    # def __str__(self):
+    #     return f"{self.company.name} - {self.cuisine.name}"
 
     class Meta:
         constraints = [
